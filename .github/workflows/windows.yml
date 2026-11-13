@@ -1,0 +1,61 @@
+# Plantrack — Windows kurulum paketi derlemesi
+# Kaynağı geliştirme deposunda: kurulum/windows/windows.yml
+# kurulum/yayinla.js bunu dağıtım deposuna .github/workflows/windows.yml olarak koyar.
+# Bir Release yayınlandığında Plantrack-Setup-<sürüm>.exe derlenip o Release'e eklenir.
+name: Windows kurulum paketi
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      etiket:
+        description: "Release etiketi (örn. v10.2)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  derle:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.etiket }}
+
+      - name: Sürümü oku
+        id: surum
+        shell: pwsh
+        run: |
+          $s = (Get-Content version.json -Raw | ConvertFrom-Json).surum
+          "surum=$s" >> $env:GITHUB_OUTPUT
+
+      - name: Söz dizimi denetimi
+        shell: pwsh
+        run: |
+          Get-ChildItem app.js, js/*.js, mcp/*.js, kurulum/kur.js | ForEach-Object { node --check $_.FullName; if ($LASTEXITCODE) { exit 1 } }
+
+      - name: Simge (.ico)
+        shell: pwsh
+        continue-on-error: true
+        run: magick assets/icon.png -define icon:auto-resize=256,64,48,32,16 "$env:RUNNER_TEMP\plantrack.ico"
+
+      - name: Inno Setup ile derle
+        shell: pwsh
+        run: |
+          $ikon = "$env:RUNNER_TEMP\plantrack.ico"
+          $iscArgs = @("/DSurum=${{ steps.surum.outputs.surum }}", "/DKaynak=$env:GITHUB_WORKSPACE", "/O$env:RUNNER_TEMP\cikti")
+          if (Test-Path $ikon) { $iscArgs += "/DIkon=$ikon" }
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          & $iscc @iscArgs kurulum\windows\plantrack.iss
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+      - name: Release'e ekle
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $etiket = "${{ github.event.release.tag_name || inputs.etiket }}"
+          gh release upload $etiket "$env:RUNNER_TEMP\cikti\Plantrack-Setup-${{ steps.surum.outputs.surum }}.exe" --clobber --repo ${{ github.repository }}

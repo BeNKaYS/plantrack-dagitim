@@ -5,6 +5,7 @@
  * Çalıştırma:  Kur_Mac.command  /  Kur_Windows.bat   (ya da: node kurulum/kur.js)
  * Seçenekler:  --evet        tüm soruları "evet" kabul et
  *              --mcp-yok     AI istemcisi ayarlarına dokunma
+ *              --masaustu-yok  Windows'ta masaüstüne Plantrack.cmd koyma (kurulum paketi kendi kısayolunu açar)
  *
  * Ne yapar:
  *   1. Node sürümünü denetler (>= 18).
@@ -26,6 +27,7 @@ const readline = require('readline');
 const ARGS = new Set(process.argv.slice(2));
 const HEPSI_EVET = ARGS.has('--evet');
 const MCP_YOK = ARGS.has('--mcp-yok');
+const MASAUSTU_YOK = ARGS.has('--masaustu-yok');
 const WIN = process.platform === 'win32';
 const MAC = process.platform === 'darwin';
 
@@ -166,7 +168,7 @@ function baslaticiOlustur(nodeYolu) {
     ].join('\r\n');
     const hedefler = [path.join(HEDEF, 'Plantrack.cmd')];
     const masaustu = path.join(HOME, 'Desktop');
-    if (fs.existsSync(masaustu)) hedefler.push(path.join(masaustu, 'Plantrack.cmd'));
+    if (!MASAUSTU_YOK && fs.existsSync(masaustu)) hedefler.push(path.join(masaustu, 'Plantrack.cmd'));
     for (const h of hedefler) fs.writeFileSync(h, cmd, 'utf8');
     return [sunucuCmd, ...hedefler];
   }

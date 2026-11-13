@@ -1,5 +1,5 @@
 {
-  "surum": "10.1",
+  "surum": "10.2",
   "tarih": "2026-11-13",
-  "not": "Güncellemeler artık herkese açık BeNKaYS/plantrack-dagitim deposundan geliyor (token gerekmez). Eski depo ayarı otomatik çevrilir."
+  "not": "Windows kurulum paketi: Releases bölümünden Plantrack-Setup.exe ile tek tıkla kurulum (yönetici izni gerekmez, Node.js yoksa yönlendirir)."
 }
